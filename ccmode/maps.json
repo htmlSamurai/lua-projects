@@ -1,0 +1,49 @@
+{
+  "City": [
+    {"name": "Bad Feeling", "resource": "badfeeling"},
+    {"name": "Clan War 1vs9", "resource": "clan-war-1vs9"},
+    {"name": "Bullet Coursels", "resource": "race-bulletcoursels"},
+    {"name": "Cheater Beater3", "resource": "race-cheaterbeater3"},
+    {"name": "Dangerous Drugs", "resource": "race-dangerous_drugs"},
+    {"name": "Dissolved", "resource": "race-dissolved"},
+    {"name": "Docki dat route", "resource": "race-dockidatroute"},
+    {"name": "Dra Dragon Dakar 5", "resource": "race-DrADragonDakar5"},
+    {"name": "FDP Midnight Run 5", "resource": "race-fdpmidnightrun5"},
+    {"name": "G59", "resource": "race-G59"}
+  ],
+  "Classic": [
+    {"name": "LS long lap", "resource": "race-lslonglap"},
+    {"name": "M4 UFO", "resource": "race-m4ufo"},
+    {"name": "red d00ds", "resource": "race-redd00ds"},
+    {"name": "Red Run", "resource": "race-redrun"},
+    {"name": "reserve 2", "resource": "race-reserve2"},
+    {"name": "yellow run", "resource": "race-yellowrun"},
+  ],
+  "Motorbike": [
+    {"name": "Bike Blaze 4", "resource": "race-Bikeblaze4"},
+    {"name": "LS NRG 500", "resource": "race-lossantosnrg500"},
+    {"name": "NRG Agility", "resource": "race-nrgagility"},
+    {"name": "NRG Grip", "resource": "race-nrggrip"},
+  ],
+  "Circuit": [
+    {"name": "Gilles", "resource": "race-gilesvilleneuve"},
+    {"name": "Hades Circuit", "resource": "race-hadescircuit"},
+    {"name": "Helsinki", "resource": "race-helsinki"},
+    {"name": "SKC Circuit", "resource": "race-kbskccircuit1"},
+    {"name": "rez level2", "resource": "race-rezlevel2"},
+  ],
+  "Offroad": [
+    {"name": "santos demons", "resource": "race-santosdemons"},
+    {"name": "Canyon Race 8", "resource": "race-skc-canyonrace8"},
+    {"name": "Vanilla shit Sanchez", "resource": "race-vanillashitsanchez"},
+    {"name": "Vinewood_BLASTAround", "resource": "race-Vinewood_BLASTAround"},
+    {"name": "Illegal VR URL", "resource": "race-vr-illegal-url-redirect"},
+    {"name": "The X Project", "resource": "The-x-project"},
+    {"name": "Winters Curse", "resource": "winters-curse"},
+  ],
+  "Airplane": [
+    {"name": "Hydara in ls", "resource": "race-hydrainls"},
+    {"name": "iDodo", "resource": "race-idodo"},
+    {"name": "WE FLY High", "resource": "race-WeFlyHigh"}
+  ]
+}
