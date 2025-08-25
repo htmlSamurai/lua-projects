@@ -1,3 +1,4 @@
+--ccmode version 34
 local tabPanel, mainTab, settingsTab
 local City, Classic, Motorbike, Circuit, Offroad, Airplane
 local Team1, Team2, Captain1, Captain2, BanTeam1, BanTeam2, PickTeam1, PickTeam2
@@ -10,9 +11,9 @@ local teams = {}
 local captains = {}
 local banList = {}
 local pickList = {}
-local isPanelVisible = true
+local isPanelVisible = true -- По умолчанию панель скрыта
 local sound = nil
-local isAdmin = false -- По умолчанию false
+local isMusicPlaying = false -- Флаг состояния музыки
 
 -- Таймеры команд
 local team1Time = 100
@@ -27,30 +28,69 @@ local draftPicksHistory = ""
 local draftHistoryLabel = nil
 local draftHistoryText = ""
 local fullPicksHistory = ""
+
 -- Шрифты и размеры
 local screenX, screenY = guiGetScreenSize()
-local px, py = (screenX / 1920) / 1.2, (screenY / 1080) / 1.2
-local bigFont = guiCreateFont("ru_Arial.ttf", 50)
+local baseWidth, baseHeight = 1920, 1080
+local scale = math.min(screenX / baseWidth, screenY / baseHeight) * 0.9
+local px, py = scale, scale
+local fontSize = math.max(30, math.min(50, 50 * scale))
+local bigFont = guiCreateFont("ru_Arial.ttf", fontSize)
 
--- Включение музыки
-local function startMusic()
-    if not sound then
-        sound = playSound(":/background_music.mp3", true)
-        if sound then
-            setSoundVolume(sound, 0.5)
-            outputChatBox("Background music enabled!", 0, 255, 0)
-        else
-            outputChatBox("Error loading music! Check 'background_music.mp3'.", 255, 0, 0)
-        end
+-- Отладочный режим
+local debugMode = true
+
+local function debugMessage(message)
+    if debugMode then
+        outputDebugString("[CC DEBUG] " .. message, 3)
+        outputChatBox("[DEBUG] " .. message, 255, 255, 0)
     end
 end
 
--- Выключение музыки
-local function stopMusic()
+-- Включение музыки (только если еще не играет)
+local function startMusic()
+    if not sound then
+        -- Проверяем существование файла
+        local musicFile = fileExists("background_music.mp3")
+        if not musicFile then
+            outputChatBox("Music file not found!", 255, 0, 0)
+            return false
+        end
+
+        sound = playSound("background_music.mp3", true)
+        if sound then
+            setSoundVolume(sound, 0.5)
+            isMusicPlaying = true
+            outputChatBox("Background music enabled!", 0, 255, 0)
+            return true
+        else
+            outputChatBox("Error loading music file!", 255, 0, 0)
+            return false
+        end
+    else
+        -- Музыка уже играет, просто включаем звук если был выключен
+        setSoundVolume(sound, 0.5)
+        isMusicPlaying = true
+        return true
+    end
+end
+
+-- Выключение только громкости (но музыка продолжает играть в фоне)
+local function muteMusic()
+    if sound then
+        setSoundVolume(sound, 0)
+        isMusicPlaying = false
+        outputChatBox("Background music muted!", 255, 255, 0)
+    end
+end
+
+-- Полное выключение музыки (только при выходе из ресурса)
+local function stopMusicCompletely()
     if sound then
         stopSound(sound)
         sound = nil
-        outputChatBox("Background music disabled!", 255, 255, 0)
+        isMusicPlaying = false
+        outputChatBox("Background music completely stopped!", 255, 255, 0)
     end
 end
 
@@ -85,7 +125,7 @@ local function updateTimersDisplay()
     end
 end
 
--- Получение выбранной карты
+-- Получение выбранной карта
 local function getSelectedMap()
     for _, grid in pairs({City, Classic, Motorbike, Circuit, Offroad, Airplane}) do
         local row = guiGridListGetSelectedItem(grid)
@@ -95,17 +135,6 @@ local function getSelectedMap()
     end
     return nil, nil
 end
-
--- Клиентская часть
-addEvent("onDraftHistoryUpdate", true)
-addEventHandler("onDraftHistoryUpdate", resourceRoot, function(historyText)
-    -- Здесь обновляем интерфейс с историей драфта
-    if guiInfo.history then
-        guiSetText(guiInfo.history, historyText)
-    end
-    -- Сохраняем историю в переменную для последующего использования
-    draftHistoryClient = historyText
-end)
 
 -- Обновление интерфейса
 local function updateGUI()
@@ -153,31 +182,59 @@ local function updateGUI()
     end
 end
 
--- Функция для обновления состояния кнопок
-local function updateTimerButtons()
-    guiSetEnabled(start1Btn, not isTimer1Active)
-    guiSetEnabled(stop1Btn, isTimer1Active)
-    guiSetEnabled(start2Btn, not isTimer2Active)
-    guiSetEnabled(stop2Btn, isTimer2Active)
-    
-    -- Функция для запроса прав у сервера
-    local function checkAdminStatus()
-        triggerServerEvent("checkPlayerPermission", localPlayer)
+-- Функция для проверки прав администратора (простая проверка через ACL группы)
+local function isPlayerAdmin()
+    -- Простая проверка: если игрок в группе Admin, Moderator или имеет определенные права
+    local account = getPlayerAccount(localPlayer)
+    if not account or isGuestAccount(account) then
+        return false
     end
 
-    -- Обработчик ответа от сервера
-    addEvent("onPermissionCheckResult", true)
-    addEventHandler("onPermissionCheckResult", resourceRoot, function(result)
-        isAdmin = result
-        updateTimerButtons() -- Обновляем кнопки после получения результата
-    end)
-
-    guiSetVisible(start1Btn, isAdmin)
-    guiSetVisible(stop1Btn, isAdmin)
-    guiSetVisible(start2Btn, isAdmin)
-    guiSetVisible(stop2Btn, isAdmin)
+    local accountName = getAccountName(account)
+    return aclGetGroup("Admin") and isObjectInACLGroup("user."..accountName, aclGetGroup("Admin")) or
+           aclGetGroup("Moderator") and isObjectInACLGroup("user."..accountName, aclGetGroup("Moderator"))
 end
 
+-- Функция для обновления состояния кнопок
+local function updateTimerButtons()
+    if not isElement(start1Btn) or not isElement(stop1Btn) or not isElement(start2Btn) or not isElement(stop2Btn) then
+        return
+    end
+
+    local isAdmin = isPlayerAdmin()
+
+    -- Обновляем состояние кнопок в зависимости от активности таймеров
+    guiSetEnabled(start1Btn, isAdmin and not isTimer1Active)
+    guiSetEnabled(stop1Btn, isAdmin and isTimer1Active)
+    guiSetEnabled(start2Btn, isAdmin and not isTimer2Active)
+    guiSetEnabled(stop2Btn, isAdmin and isTimer2Active)
+
+    -- Визуальная обратная связь
+    guiSetProperty(start1Btn, "NormalTextColour", isTimer1Active and "FF888888" or "FF00FF00")
+    guiSetProperty(stop1Btn, "NormalTextColour", isTimer1Active and "FFFF0000" or "FF888888")
+    guiSetProperty(start2Btn, "NormalTextColour", isTimer2Active and "FF888888" or "FF00FF00")
+    guiSetProperty(stop2Btn, "NormalTextColour", isTimer2Active and "FFFF0000" or "FF888888")
+end
+
+-- Функция для проверки количества выбранных карт
+local function getSelectedMapsCount()
+    local count = 0
+    for _, grid in pairs({City, Classic, Motorbike, Circuit, Offroad, Airplane}) do
+        if guiGridListGetSelectedItem(grid) ~= -1 then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+-- Функция для сброса всех выделений
+local function resetAllSelections()
+    for _, grid in pairs({City, Classic, Motorbike, Circuit, Offroad, Airplane}) do
+        guiGridListSetSelectedItem(grid, -1, 1)
+    end
+end
+
+-- Функция для подсветки категорий
 -- Функция для подсветки категорий
 local function updateCategoryHighlights()
     -- Получаем текущего капитана (если это его ход)
@@ -205,11 +262,48 @@ local function updateCategoryHighlights()
     end
 end
 
+-- Обработчик получения полной истории пиков
+addEvent("onDraftPicksUpdate", true)
+addEventHandler("onDraftPicksUpdate", resourceRoot, function(picksText)
+    draftPicksHistory = picksText or ""
+    if isElement(draftHistoryLabel) then
+        guiSetText(draftHistoryLabel, draftPicksHistory)
+    end
+end)
+
+-- Обработчик принудительного открытия/закрытия панели
+addEvent("onForcePanelOpen", true)
+addEventHandler("onForcePanelOpen", resourceRoot, function(open)
+    -- Администратор принудительно устанавливает состояние для всех игроков
+    isPanelVisible = open
+    guiSetVisible(tableGUI, isPanelVisible)
+    showCursor(isPanelVisible)
+
+    if open then
+        -- При открытии включаем звук музыки
+        if sound then
+            setSoundVolume(sound, 0.5)
+            isMusicPlaying = true
+        else
+            startMusic() -- Запускаем музыку если еще не играет
+        end
+        outputChatBox("Administrator has opened the Captain's Mode panel for all players!", 0, 255, 0)
+    else
+        -- При закрытии только выключаем звук, но музыка продолжает играть в фоне
+        if sound then
+            setSoundVolume(sound, 0)
+            isMusicPlaying = false
+        end
+        outputChatBox("Administrator has closed the Captain's Mode panel for all players! Music continues in background.", 255, 0, 0)
+    end
+end)
+
 -- Создание GUI
 addEventHandler("onClientResourceStart", resourceRoot, function()
     -- Основное окно
     tableGUI = guiCreateWindow((screenX - 1920 * px) / 2, (screenY - 1080 * py) / 2, 1920 * px, 1080 * py, "Captain's Mode | Version 5.0", false)
     guiWindowSetSizable(tableGUI, false)
+    guiSetVisible(tableGUI, isPanelVisible) -- Устанавливаем начальную видимость
 
     -- Панель вкладок
     tabPanel = guiCreateTabPanel(10 * px, 30 * py, 1900 * px, 1040 * py, false, tableGUI)
@@ -287,7 +381,7 @@ addEventHandler("onClientResourceStart", resourceRoot, function()
     -- Дополнительное изображение
     ExtraImage = guiCreateStaticImage(682 * px, 260 * py, 590 * px, 178 * py, ":/extra_image.png", false, mainTab)
     if not ExtraImage then
-        outputChatBox("Ошибка загрузки изображения!", 255, 0, 0)
+        outputChatBox("Error loading image!", 255, 0, 0)
     end
 
     -- Вкладка настроек (Settings)
@@ -313,7 +407,7 @@ addEventHandler("onClientResourceStart", resourceRoot, function()
     local playersLabel = guiCreateLabel(400 * px, 20 * py, 500 * px, 20 * py, "All Players", false, settingsTab)
     guiSetFont(playersLabel, "default-bold-small")
 
-    -- Увеличиваем размер панели игроков
+    -- Увеличиваем размер панель игроков
     local playersGrid = guiCreateGridList(400 * px, 50 * py, 500 * px, 350 * py, false, settingsTab)
     guiGridListAddColumn(playersGrid, "Players", 0.9) -- Только один столбец
 
@@ -322,81 +416,72 @@ addEventHandler("onClientResourceStart", resourceRoot, function()
     local captain2Btn = guiCreateButton(660 * px, 410 * py, 240 * px, 40 * py, "Set team 2 Captain", false, settingsTab)
     local refreshBtn = guiCreateButton(400 * px, 460 * py, 500 * px, 30 * py, "Refresh Players", false, settingsTab)
 
+    -- Вкладка информации (Information)
     local infoText = [[
-Welcome to Captain's Mode.
-This script was created for the Captain’s Cup 2015 tournament by LSR Team.
+    Welcome to Captain's Mode.
+    This script was created for the Captain's Cup 2015 tournament by LSR Team.
 
-User Guide
-1. This script works with a modified version of the race_league script by Vally.
-2. Server administrators must add the main resource (ccmode) to the acl.xml file.
-3. Server administrators must add maps to the maps.json list.
-3.1. Example of adding a map:
+    User Guide
+    1. This script works with a modified version of the race_league script by Vally.
+    2. Server administrators must add the main resource (ccmode) to the acl.xml file.
+     <group name="Moderator">
+            <acl name="Moderator"></acl>
+             <object name="resource.ccmode"></object>
+    </group>
+    3. Server administrators must add maps to the maps.json list.
+    3.1. Example of adding a map:
 
-json code
-{"name": "Dra Dragon Dakar 5", "resource": "race-DrADragonDakar5"}
+    json code
+    {"name": "Dra Dragon Dakar 5", "resource": "race-DrADragonDakar5"}
 
-4. Disable all resources that interfere with the script’s logic or functionality. Examples of such scripts: votemanager, race_team, race_league.
-5. After launching the resource, perform the following steps:
-5.1. Open the race_league team creation panel (F2, create teams, click Start CW, then close the panel).
-5.2. Open the ccmode panel (press "J").
-5.3. In the Setting tab, set the team names.
-5.4. In the Setting tab, assign two captains.
-5.5. If the team captains are ready to proceed to the drafting stage, click Start Captain’s Match.
+    4. Disable all resources that interfere with the script's logic or functionality. Examples of such scripts: votemanager, race_team, race_league.
+    5. After launching the resource, perform the following steps:
+    5.1. Open the race_league team creation panel (F2, create teams, click Start CW, then close the panel).
+    5.2. Open the ccmode panel (press "J").
+    5.3. In the Setting tab, set the team names.
+    5.4. In the Setting tab, assign two captains.
+    5.5. If the team captains are ready to proceed to the drafting stage, click Start Captain's Match.
 
-Draft Stage Process
-6.1. During the draft stage, captains ban and pick maps for the match.
-6.2. A maximum of 2 maps can be selected from one category. If a captain tries to pick a third map, they will receive a private notification that the selection limit for that category has been reached.
-6.3. If a captain fails to pick or ban a map in time, the script will automatically select or ban random maps once the timer expires.
-6.4. On the main ccmode panel, the administrator has access to the following buttons: START 1, START 2, STOP 1, STOP 2. These buttons are used to pause or resume team timers.
+    Draft Stage Process
+    6.1. During the draft stage, captains ban and pick maps for the match.
+    6.2. A maximum of 2 maps can be selected from one category. If a captain tries to pick a third map, they will receive a private notification that the selection limit for that category has been reached.
+    6.3. If a captain fails to pick or ban a map in time, the script will automatically select or ban random maps once the timer expires.
+    6.4. On the main ccmode panel, the administrator has access to the following buttons: START 1, START 2, STOP 1, STOP 2. These buttons are used to pause or resume team timers.
 
-6.4.1. If any captain disconnects (Exit / Timeout), the timer must be paused using STOP. After the player returns, they must be reassigned as captain.
+    6.4.1. If any captain disconnects (Exit / Timeout), the timer must be paused using STOP. After the player returns, they must be reassigned as captain.
 
-6.4.2. The team captain can be changed in the Settings tab, allowing another player to pick/ban maps.
+    6.4.2. The team captain can be changed in the Settings tab, allowing another player to pick/ban maps.
 
-6.4.3. Important! The captain’s nickname must not contain color codes (e.g., #ffff00nickname).
-6.5. After the draft stage, all selected maps will be displayed:
+    6.4.3. Important! The captain's nickname must not contain color codes (e.g., #ffff00nickname).
+    6.5. After the draft stage, all selected maps will be displayed:
 
-On the main CC Match panel.
+    On the main CC Match panel.
 
-In the chat as a notification.
-6.6. To start the next map, captains must type /rdy.
+    In the chat as a notification.
+    6.6. To start the next map, captains must type /rdy.
 
-6.6.1. The system will automatically launch the next map. The administrator doesn’t need to do anything—they can relax, smoke bamboo, fap, or whatever else they do.....
-6.6.2. If the script fails to find map resource for the next map, check resource name in maps.json.
-6.7. After each round, the next map’s details will be displayed in the chat.
+    6.6.1. The system will automatically launch the next map. The administrator doesn't need to do anything—they can relax, smoke bamboo, fap, or whatever else they do.....
+    6.6.2. If the script fails to find map resource for the next map, check resource name in maps.json.
+    6.7. After each round, the next map's details will be displayed in the chat.
 
-After the match ends, the ccmode resource must be disabled.
+    After the match ends, the ccmode resource must be disabled.
 
-Developers:
-Current version: GARIK08, THIRTYTWO, Mateoryt.
+    Developers:
+    Current version: GARIK08, THIRTYTWO, Mateoryt.
 
-Previous version: lukum, GARIK08.
-]]
---500, 200
+    Previous version: lukum, GARIK08.
+    ]]
+
     local infoLabel = guiCreateLabel(20 * px, 30 * py, 1000 * px, 1500 * py, infoText, false, InfoTab)
-    guiLabelSetHorizontalAlign(infoLabel, "left", true) -- Разрешаем перенос слов
+    guiLabelSetHorizontalAlign(infoLabel, "left", true)
 
-    -- Создаем элемент истории
-    -- В обработчике создания GUI (onClientResourceStart):
+    -- Вкладка истории матча (Match Maps)
     draftHistoryLabel = guiCreateLabel(20, 30, 500, 400,
-            "Здесь будет отображаться история выбранных карт после завершения драфта",
+            "Match maps history will be displayed here after draft completion",
             false, HistoryTab)
     guiLabelSetHorizontalAlign(draftHistoryLabel, "left", true)
     guiSetFont(draftHistoryLabel, "default-bold-small")
     guiLabelSetColor(draftHistoryLabel, 255, 255, 255)
-
-    addEventHandler("onClientResourceStart", resourceRoot, function()
-        setTimer(function()
-            triggerServerEvent("requestDraftPicks", resourceRoot)
-        end, 1000, 1)
-    end)
-
-    -- Если есть сохраненная история, показываем ее
-    if #draftHistoryText > 0 then
-        guiSetText(draftHistoryLabel, draftHistoryText)
-    end
-
-    triggerServerEvent("requestInitialData", resourceRoot)
 
     -- Функция обновления списка игроков
     local function updatePlayersList()
@@ -458,7 +543,7 @@ Previous version: lukum, GARIK08.
             end
 
             triggerServerEvent("onSetTeams", resourceRoot, team1Name, team2Name)
-            outputChatBox("Team names set: "..team1Name.." и "..team2Name, 0, 255, 0)
+            outputChatBox("Team names set: "..team1Name.." and "..team2Name, 0, 255, 0)
         end
     end, false)
 
@@ -470,7 +555,7 @@ Previous version: lukum, GARIK08.
                 return
             end
             if captains.Captain1 == "" or captains.Captain2 == "" then
-                outputChatBox("Enter names for both teams!!", 255, 0, 0)
+                outputChatBox("Assign both captains first!", 255, 0, 0)
                 return
             end
 
@@ -479,64 +564,60 @@ Previous version: lukum, GARIK08.
         end
     end, false)
 
-    -- Обработчики кнопок управления таймерами
-    addEventHandler("onClientGUIClick", start1Btn, function()
-        triggerServerEvent("onTimerControl", localPlayer, 1, "start")
-    end, false)
-
-    addEventHandler("onClientGUIClick", stop1Btn, function()
-        triggerServerEvent("onTimerControl", localPlayer, 1, "stop")
-    end, false)
-
-    addEventHandler("onClientGUIClick", start2Btn, function()
-        triggerServerEvent("onTimerControl", localPlayer, 2, "start")
-    end, false)
-
-    addEventHandler("onClientGUIClick", stop2Btn, function()
-        triggerServerEvent("onTimerControl", localPlayer, 2, "stop")
-    end, false)
-
-    -- Добавим в конец onClientResourceStart
-    local currentMapLabel = guiCreateLabel(700 * px, 380 * py, 500 * px, 40 * py, "Текущая карта: -", false, mainTab)
-    guiSetFont(currentMapLabel, "default-bold-small")
-    guiLabelSetHorizontalAlign(currentMapLabel, "center")
-
-    -- Обработчик обновления текущей карты
-    addEventHandler("onClientElementDataChange", root, function(dataName)
-        if dataName == "currentMap" then
-            local mapData = getElementData(root, "currentMap")
-            if mapData then
-                guiSetText(currentMapLabel, "Map now: "..mapData.name.." ("..mapData.index.."/"..mapData.total..")")
-            else
-                guiSetText(currentMapLabel, "Map now: -")
-            end
+    -- Обработчики кнопок управления таймерами (ИСПРАВЛЕННЫЕ)
+    addEventHandler("onClientGUIClick", start1Btn, function(button, state)
+        if button == "left" and state == "up" then
+            debugMessage("Start1 clicked - Timer1 active: " .. tostring(isTimer1Active))
+    --        if not isPlayerAdmin() then
+      --          outputChatBox("Only administrators can control timers!", 255, 0, 0)
+        --        return
+        --    end
+            -- Всегда отправляем "start" для кнопки START
+            triggerServerEvent("onTimerControl", localPlayer, 1, "start")
         end
-    end)
+    end, false)
+
+addEventHandler("onClientGUIClick", stop1Btn, function(button, state)
+    if button == "left" and state == "up" then
+        debugMessage("Stop1 clicked - Timer1 active: " .. tostring(isTimer1Active))
+        -- Закомментируйте проверку прав для тестирования:
+        -- if not isPlayerAdmin() then
+        --     outputChatBox("Only administrators can control timers!", 255, 0, 0)
+        --     return
+        -- end
+        triggerServerEvent("onTimerControl", localPlayer, 1, "stop")
+    end
+end, false)
+
+    addEventHandler("onClientGUIClick", start2Btn, function(button, state)
+        if button == "left" and state == "up" then
+            debugMessage("Start2 clicked - Timer2 active: " .. tostring(isTimer2Active))
+       --     if not isPlayerAdmin() then
+         --       outputChatBox("Only administrators can control timers!", 255, 0, 0)
+           --     return
+--            end
+            -- Всегда отправляем "start" для кнопки START
+            triggerServerEvent("onTimerControl", localPlayer, 2, "start")
+        end
+    end, false)
+
+    addEventHandler("onClientGUIClick", stop2Btn, function(button, state)
+        if button == "left" and state == "up" then
+            debugMessage("Stop2 clicked - Timer2 active: " .. tostring(isTimer2Active))
+  --          if not isPlayerAdmin() then
+    --            outputChatBox("Only administrators can control timers!", 255, 0, 0)
+      --          return
+        --    end
+            -- Всегда отправляем "stop" для кнопки STOP
+            triggerServerEvent("onTimerControl", localPlayer, 2, "stop")
+        end
+    end, false)
 
     -- Обновляем список игроков при старте
     updatePlayersList()
 
     -- Инициализация курсора
-    guiSetVisible(tableGUI, isPanelVisible)
     showCursor(isPanelVisible)
-
-    -- Функция для проверки количества выбранных карт
-    local function getSelectedMapsCount()
-        local count = 0
-        for _, grid in pairs({City, Classic, Motorbike, Circuit, Offroad, Airplane}) do
-            if guiGridListGetSelectedItem(grid) ~= -1 then
-                count = count + 1
-            end
-        end
-        return count
-    end
-
-    -- Функция для сброса всех выделений
-    local function resetAllSelections()
-        for _, grid in pairs({City, Classic, Motorbike, Circuit, Offroad, Airplane}) do
-            guiGridListSetSelectedItem(grid, -1, 1)
-        end
-    end
 
     -- Обновленный обработчик кнопки Ban/Pick
     addEventHandler("onClientGUIClick", Button, function(button, state)
@@ -547,7 +628,7 @@ Previous version: lukum, GARIK08.
             end
 
             if localPlayer ~= currentTurnData.captain then
-                local captainName = currentTurnData.captain and getPlayerName(currentTurnData.captain, true) or "Неизвестно"
+                local captainName = currentTurnData.captain and getPlayerName(currentTurnData.captain, true) or "Unknown"
                 outputChatBox("Not your turn! Current captain: " .. captainName, 255, 0, 0)
                 return
             end
@@ -559,11 +640,11 @@ Previous version: lukum, GARIK08.
                 return
             elseif selectedCount > 1 then
                 outputChatBox("Please select ONLY ONE map!", 255, 0, 0)
-                resetAllSelections()  -- Сбрасываем все выделения
+                resetAllSelections()
                 return
             end
 
-            -- Получаем выбранную карту (гарантировано одна)
+            -- Получаем выбранную карту
             local selectedMap, gridList
             for _, grid in pairs({City, Classic, Motorbike, Circuit, Offroad, Airplane}) do
                 local row = guiGridListGetSelectedItem(grid)
@@ -603,28 +684,58 @@ Previous version: lukum, GARIK08.
                 end
             end
 
-            resetAllSelections()  -- Сбрасываем выделение после успешного выбора
+            resetAllSelections()
         end
     end, false)
 
-    -- Обработчик клавиши H
-    bindKey("h", "down", function()
+    -- Обработчик клавиши J
+    bindKey("j", "down", function()
+        -- Всегда позволяем игроку открывать/закрывать панель
         isPanelVisible = not isPanelVisible
         guiSetVisible(tableGUI, isPanelVisible)
         showCursor(isPanelVisible)
 
         if isPanelVisible then
-            startMusic()
+            -- При открытии меню включаем звук музыки
+            if sound then
+                setSoundVolume(sound, 0.5)
+                isMusicPlaying = true
+            else
+                startMusic() -- Запускаем музыку если еще не играет
+            end
+            outputChatBox("Captain Cup panel opened! (Press J to close)", 255, 255, 0)
         else
-            stopMusic()
+            -- При закрытии меню только выключаем звук, но музыка продолжает играть
+            if sound then
+                setSoundVolume(sound, 0)
+                isMusicPlaying = false
+            end
+            outputChatBox("Captain Cup panel hidden! Music continues in background! (Press J to open)", 255, 255, 0)
         end
-        outputChatBox(isPanelVisible and "Captain Cup panel opened!" or "Captain Cup panel hidden!", 255, 255, 0)
+    end)
+
+    -- Обработчик остановки ресурса (полностью выключаем музыку)
+    addEventHandler("onClientResourceStop", resourceRoot, function()
+        stopMusicCompletely()
+    end)
+
+    -- Обработчик выхода из игры (полностью выключаем музыку)
+    addEventHandler("onClientPlayerQuit", root, function()
+        if source == localPlayer then
+            stopMusicCompletely()
+        end
     end)
 
     -- Проверяем права при старте
     setTimer(function()
         updateTimerButtons()
     end, 1000, 1)
+
+    -- Запрос данных с сервера
+    setTimer(function()
+        triggerServerEvent("requestInitialData", resourceRoot)
+        triggerServerEvent("requestFullPicksHistory", resourceRoot)
+    end, 1500, 1)
 
     startMusic()
 end)
@@ -634,23 +745,6 @@ addEvent("onInitialDataReceived", true)
 addEventHandler("onInitialDataReceived", resourceRoot, function(initialMaps)
     maps = initialMaps
     updateGUI()
-end)
-
-
-triggerServerEvent("requestInitialData", resourceRoot)
-
--- И добавить обработчик для повторного запроса данных при необходимости
-addEventHandler("onClientResourceStart", resourceRoot, function()
-    -- Ждем немного перед запросом данных
-    setTimer(function()
-        triggerServerEvent("requestInitialData", resourceRoot)
-
-        -- Если у нас уже есть данные о текущей карте, обновляем label
-        local currentMap = getElementData(root, "currentMap")
-        if currentMap then
-            guiSetText(currentMapLabel, "Map now: "..currentMap.name.." ("..currentMap.index.."/"..currentMap.total..")")
-        end
-    end, 1000, 1)
 end)
 
 -- Синхронизация данных с сервером
@@ -677,37 +771,9 @@ addEventHandler("onSyncData", resourceRoot, function(syncedTeams, syncedCaptains
 
     -- Обновляем подсветку категорий
     updateCategoryHighlights()
-end)
 
-local bansHistoryText = ""
-local picksHistoryText = ""
-
-addEvent("onDraftBansUpdate", true)
-addEventHandler("onDraftBansUpdate", resourceRoot, function(text)
-    bansHistoryText = text or ""
-    updateHistoryLabel()
-end)
-
--- Обработчик получения истории пиков
-addEvent("onDraftPicksUpdate", true)
-addEventHandler("onDraftPicksUpdate", resourceRoot, function(picksText)
-    draftPicksHistory = picksText or ""
-    updateHistoryLabel()
-end)
-
--- Функция обновления текста в истории
-function updateHistoryLabel()
-    if isElement(draftHistoryLabel) then
-        guiSetText(draftHistoryLabel, draftPicksHistory)
-    end
-end
-
--- При подключении игрока запрашиваем обе части истории
-addEventHandler("onClientResourceStart", resourceRoot, function()
-    -- Ждем немного перед запросом данных
-    setTimer(function()
-        triggerServerEvent("requestFullPicksHistory", resourceRoot)
-    end, 1500, 1)
+    -- Обновляем состояние кнопок таймеров
+    updateTimerButtons()
 end)
 
 -- Обновление таймеров команд
