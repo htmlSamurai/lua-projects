@@ -5,6 +5,7 @@ local teams = {}
 local c_round = 0
 local m_round = 0
 local f_round = false
+local round_ended = true
 local team_choosen = false
 local isAdmin = false
 
@@ -111,7 +112,7 @@ function dxDrawRoundedRectangle(x, y, rx, ry, color, radius)
         dxDrawRectangle(x, y - radius, rx, radius, color)
         dxDrawRectangle(x, y + ry, rx, radius, color)
         dxDrawRectangle(x - radius, y, radius, ry, color)
-        dxDrawRectangle(x + rx, y, radius, ry, color)	
+        dxDrawRectangle(x + rx, y, radius, ry, color)
         dxDrawCircle(x, y, radius, 180, 270, color, color, 7)
         dxDrawCircle(x + rx, y, radius, 270, 360, color, color, 7)
         dxDrawCircle(x + rx, y + ry, radius, 0, 90, color, color, 7)
@@ -122,29 +123,32 @@ end
 function updateDisplay()
 	--score
 	if isElement(teams[1]) and isElement(teams[2]) then
+		-- Показываем основной интерфейс, даже если матч закончен
+		local r1, g1, b1 = getTeamColor(teams[1])
+		local r2, g2, b2 = getTeamColor(teams[2])
+		dxDrawRoundedRectangle(s_x-200.5, 66, 143.5, 135, tocolor(0, 0, 0, 180), 20)
+
+		-- Если это не fun round, показываем счет
 		if not f_round then
-			local r1, g1, b1 = getTeamColor(teams[1])
-			local r2, g2, b2 = getTeamColor(teams[2])			
-           dxDrawRoundedRectangle(s_x-200.5, 66, 143.5, 135, tocolor(0, 0, 0, 180), 20)
-           dxDrawRoundedRectangle(s_x-215.5, 110, 173.5, 50, tocolor(208, 54, 54, 255), 20)
-			dxDrawText('Round ' ..c_round.. ' of ' ..m_round, s_x-127.5, 135, s_x-127.5, 135, tocolor ( 255, 255, 255, 255 ), 1.9, "default-bold", 'center', 'center')			
-			if tonumber(getElementData(teams[1], 'Score')) > tonumber(getElementData(teams[2], 'Score')) then
-				dxDrawText(getTeamName(teams[1]).. ' - ' ..getElementData(teams[1], 'Score'), s_x-127.5, 0+text_offset, s_x-127.5, 140+text_offset, tocolor ( r1, g1, b1, 255 ), 1.4, "default-bold", 'center', 'center')
-				dxDrawText(getTeamName(teams[2]).. ' - ' ..getElementData(teams[2], 'Score'), s_x-127.5, 0+text_offset*9, s_x-127.5, 140+text_offset*2, tocolor ( r2, g2, b2, 255 ), 1.4, "default-bold", 'center', 'center')			
-			elseif tonumber(getElementData(teams[1], 'Score')) < tonumber(getElementData(teams[2], 'Score')) then
-				dxDrawText(getTeamName(teams[1]).. ' - ' ..getElementData(teams[1], 'Score'), s_x-127.5, 0+text_offset, s_x-127.5, 140+text_offset, tocolor ( r1, g1, b1, 255 ), 1.4, "default-bold", 'center', 'center')
-				dxDrawText(getTeamName(teams[2]).. ' - ' ..getElementData(teams[2], 'Score'), s_x-127.5, 0+text_offset*9, s_x-127.5, 140+text_offset*2, tocolor ( r2, g2, b2, 255 ), 1.4, "default-bold", 'center', 'center')			
-			elseif tonumber(getElementData(teams[1], 'Score')) == tonumber(getElementData(teams[2], 'Score')) then
-				dxDrawText(getTeamName(teams[1]).. ' - ' ..getElementData(teams[1], 'Score'), s_x-127.5, 0+text_offset, s_x-127.5, 140+text_offset, tocolor ( r1, g1, b1, 255 ), 1.4, "default-bold", 'center', 'center')
-				dxDrawText(getTeamName(teams[2]).. ' - ' ..getElementData(teams[2], 'Score'), s_x-127.5, 0+text_offset*9, s_x-127.5, 140+text_offset*2, tocolor ( r2, g2, b2, 255 ), 1.4, "default-bold", 'center', 'center')
+			dxDrawRoundedRectangle(s_x-215.5, 110, 173.5, 50, tocolor(208, 54, 54, 255), 20)
+
+			-- Если матч закончен (последний раунд завершен), показываем "Match ended"
+			if c_round >= m_round and round_ended then
+				dxDrawText('Match ended', s_x-127.5, 135, s_x-127.5, 135, tocolor(255, 255, 255, 255), 1.9, "default-bold", 'center', 'center')
+			else
+				dxDrawText('Round ' ..c_round.. ' of ' ..m_round, s_x-127.5, 135, s_x-127.5, 135, tocolor(255, 255, 255, 255), 1.9, "default-bold", 'center', 'center')
 			end
+
+			-- Показываем счет команд
+			dxDrawText(getTeamName(teams[1]).. ' - ' ..getElementData(teams[1], 'Score'), s_x-127.5, 0+text_offset, s_x-127.5, 140+text_offset, tocolor(r1, g1, b1, 255), 1.4, "default-bold", 'center', 'center')
+			dxDrawText(getTeamName(teams[2]).. ' - ' ..getElementData(teams[2], 'Score'), s_x-127.5, 0+text_offset*9, s_x-127.5, 140+text_offset*2, tocolor(r2, g2, b2, 255), 1.4, "default-bold", 'center', 'center')
 		else
+			-- Fun round интерфейс
 			dxDrawRoundedRectangle(s_x-220.5, 100, 182.5, 75, tocolor(0, 0, 0, 180), 20)
-			dxDrawText('Fun Round', s_x-125, 140, s_x-127.5, 140, tocolor ( 255, 255, 255, 255 ), 2.6, "default-bold", 'center', 'center')
+			dxDrawText('Fun Round', s_x-125, 140, s_x-127.5, 140, tocolor(255, 255, 255, 255), 2.6, "default-bold", 'center', 'center')
 		end
 	end
 end
-
 
 ------------------------
 --GUI
@@ -252,7 +256,7 @@ function createAdminGUI()
 		tt2_name = guiCreateLabel(155, 20, 150, 20, "Team 2 Captain:", false, tab_caps)
 		guiCreateLabel(155, 25, 150, 20, "_______________", false, tab_caps)
 		t2_playersList = guiCreateComboBox (155, 41, 113, 123, "", false, tab_caps)
-		for key,player in ipairs(getElementsByType('player')) do 
+		for key,player in ipairs(getElementsByType('player')) do
 			guiComboBoxAddItem(t1_playersList, removeHex(getPlayerName(player), 6))
 			guiComboBoxAddItem(t2_playersList, removeHex(getPlayerName(player), 6))
 		end
@@ -421,18 +425,25 @@ function updateTeamData(team1, team2, team3)
 	teams[1] = team1
 	teams[2] = team2
 	teams[3] = team3
+
+	-- Если команды уничтожены (nil), скрываем интерфейс
+	if not team1 or not team2 then
+		teams = {}
+	end
+
 	updateAdminPanelText()
 end
 
-function updateRoundData(c_r, max_r, f_r)
-	if c_r == 0 then
-		f_round = true
-	else
-		f_round = f_r
-	end
-	c_round = c_r
-	m_round = max_r
-	updateAdminPanelText()
+function updateRoundData(c_r, max_r, f_r, r_ended)
+    if c_r == 0 then
+        f_round = true
+    else
+        f_round = f_r
+    end
+    c_round = c_r
+    m_round = max_r
+    round_ended = r_ended or false
+    updateAdminPanelText()
 end
 
 function updateAdminInfo(obj)
@@ -487,7 +498,7 @@ addEventHandler('onClientResourceStart', getResourceRootElement(), onResStart)
 -- ADDITIONAL EVENTS
 --------------------
 
-addEventHandler('onClientRender', getRootElement(), 
+addEventHandler('onClientRender', getRootElement(),
 function()
 	if isElement(teams[1]) and isElement(teams[2]) and isElement(teams[3]) then
 		if not f_round and c_round > 0 and getElementData(getPlayerTeam(localPlayer), 'Score') ~= 0 and getElementData(localPlayer, 'Maps played') ~= 0 then
@@ -512,28 +523,28 @@ end)
 
 addEventHandler('onClientPlayerQuit', getRootElement(),
 function()
-	for row = 0, guiComboBoxGetItemCount(t1_playersList) - 1 do 
-		if (guiComboBoxGetItemText(t1_playersList, row) == removeHex(getPlayerName(source),6)) then 
+	for row = 0, guiComboBoxGetItemCount(t1_playersList) - 1 do
+		if (guiComboBoxGetItemText(t1_playersList, row) == removeHex(getPlayerName(source),6)) then
 			guiComboBoxRemoveItem(t1_playersList, row)
-		end 
-	end 
-	for row = 0, guiComboBoxGetItemCount(t2_playersList) - 1 do 
-		if (guiComboBoxGetItemText(t2_playersList, row) == removeHex(getPlayerName(source),6)) then 
+		end
+	end
+	for row = 0, guiComboBoxGetItemCount(t2_playersList) - 1 do
+		if (guiComboBoxGetItemText(t2_playersList, row) == removeHex(getPlayerName(source),6)) then
 			guiComboBoxRemoveItem(t2_playersList, row)
-		end 
-	end 
+		end
+	end
 end)
 
 addEventHandler('onClientPlayerChangeNick', getRootElement(),
 function(old_nick, new_nick)
-	for row = 0, guiComboBoxGetItemCount(t1_playersList) - 1 do 
-		if (guiComboBoxGetItemText(t1_playersList, row) == removeHex(old_nick,6)) then 
+	for row = 0, guiComboBoxGetItemCount(t1_playersList) - 1 do
+		if (guiComboBoxGetItemText(t1_playersList, row) == removeHex(old_nick,6)) then
 			guiComboBoxSetItemText(t1_playersList, row, removeHex(new_nick,6))
-		end 
-	end 
-	for row = 0, guiComboBoxGetItemCount(t2_playersList) - 1 do 
-		if (guiComboBoxGetItemText(t2_playersList, row) == removeHex(old_nick,6)) then 
+		end
+	end
+	for row = 0, guiComboBoxGetItemCount(t2_playersList) - 1 do
+		if (guiComboBoxGetItemText(t2_playersList, row) == removeHex(old_nick,6)) then
 			guiComboBoxSetItemText(t2_playersList, row, removeHex(new_nick,6))
-		end 
-	end 
+		end
+	end
 end)
