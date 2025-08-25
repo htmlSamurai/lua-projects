@@ -1,5 +1,5 @@
 <meta>
-	<info author="Vally, additional features by VilgeGOA, various fixes by Megas & AbueloEbrio" version="1.6" type="script" />
+	<info author="Vally, VilgeGOA, Megas, AbueloEbrio, GARIK08" version="1.6" type="script" />
 
 	<script src="rl_server.lua" type="server" />
 	<script src="rl_client.lua" type="client" />
