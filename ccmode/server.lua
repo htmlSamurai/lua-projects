@@ -1,4 +1,4 @@
---ccmode version 34
+--ccmode version 38
 local teams = { Team1 = "", Team2 = "" }
 local captainElements = { Captain1 = nil, Captain2 = nil }
 local captainNames = { Captain1 = "", Captain2 = "" }
@@ -11,8 +11,8 @@ local isProcessActive = false
 local turnTimer = nil
 local isTimer1Active = false
 local isTimer2Active = false
-local team1Time = 15 --сделат тут 450
-local team2Time = 15 --сделат тут 450
+local team1Time = 450 --сделат тут 450
+local team2Time = 450 --сделат тут 450
 local activeTeam = nil
 local globalPanelState = true -- Панель по умолчанию открыта
 local captainCategoryStats = {
@@ -337,8 +337,8 @@ addEventHandler("startCaptainCup", resourceRoot, function()
     end
 
     -- Инициализация
-    team1Time = 15
-    team2Time = 15
+    team1Time = 450 --15 Секунд таймера
+    team2Time = 450 --15 секунд таймера
     activeTeam = 1
     isTimer1Active = true
     isTimer2Active = true
@@ -709,7 +709,7 @@ function nextTurn()
     else
         local turnData = actionQueue[currentTurn]
         local nextCaptainName = (turnData.captain == captainElements.Captain1) and captainNames.Captain1 or captainNames.Captain2
-        outputChatBox("[CC] Turn for " .. nextCaptainName .. " (" .. turnData.action .. ")", root, 0, 255, 0)
+        outputChatBox("[CC] Turn for " .. nextCaptainName .. " (" .. turnData.action .. ")", root, 0, 255, 255)
 
         activeTeam = (turnData.captain == captainElements.Captain1) and 1 or 2
         triggerClientEvent(root, "onUpdateTeamTimers", resourceRoot, team1Time, team2Time, activeTeam)
@@ -977,13 +977,13 @@ end)
 
 -- Серверный таймер для обновления времени
 --setTimer(function()
---    if isProcessActive and activeTeam then
---        if activeTeam == 1 and isTimer1Active and team1Time > 0 then
---            team1Time = team1Time - 1
---            triggerClientEvent(root, "onUpdateTeamTimers", resourceRoot, team1Time, team2Time, activeTeam)
---        elseif activeTeam == 2 and isTimer2Active and team2Time > 0 then
+  --  if isProcessActive and activeTeam then
+    --    if activeTeam == 1 and isTimer1Active and team1Time > 0 then
+      --      team1Time = team1Time - 1
+       --     triggerClientEvent(root, "onUpdateTeamTimers", resourceRoot, team1Time, team2Time, activeTeam)
+        -- elseif activeTeam == 2 and isTimer2Active and team2Time > 0 then
 --            team2Time = team2Time - 1
---            triggerClientEvent(root, "onUpdateTeamTimers", resourceRoot, team1Time, team2Time, activeTeam)
---        end
+  --          triggerClientEvent(root, "onUpdateTeamTimers", resourceRoot, team1Time, team2Time, activeTeam)
+    --    end
 --    end
---end, 1000, 0)
+-- end, 1000, 0)
