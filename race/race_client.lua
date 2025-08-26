@@ -665,6 +665,7 @@ function checkWater()
 	end
 end
 
+--show 3 cp fix by(GARIK08)
 function showNextCheckpoint(bOtherPlayer)
 	g_CurrentCheckpoint = g_CurrentCheckpoint + 1
 	local i = g_CurrentCheckpoint
