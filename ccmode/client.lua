@@ -1,4 +1,4 @@
---ccmode version 34
+--ccmode version 38
 local tabPanel, mainTab, settingsTab
 local City, Classic, Motorbike, Circuit, Offroad, Airplane
 local Team1, Team2, Captain1, Captain2, BanTeam1, BanTeam2, PickTeam1, PickTeam2
@@ -294,7 +294,7 @@ addEventHandler("onForcePanelOpen", resourceRoot, function(open)
             setSoundVolume(sound, 0)
             isMusicPlaying = false
         end
-        outputChatBox("Administrator has closed the Captain's Mode panel for all players! Music continues in background.", 255, 0, 0)
+  --      outputChatBox("Administrator has closed the Captain's Mode panel for all players! Music continues in background.", 255, 0, 0)
     end
 end)
 
@@ -313,7 +313,7 @@ addEventHandler("onClientResourceStart", resourceRoot, function()
     HistoryTab = guiCreateTab("Match Maps", tabPanel)
 
     -- Основная вкладка (Main)
-    BackgroundImage = guiCreateStaticImage(682 * px, 564 * py, 590 * px, 455 * py, ":/background.png", false, mainTab)
+    BackgroundImage = guiCreateStaticImage(682 * px, 564 * py, 590 * px, 455 * py, "background.png", false, mainTab)
 
     -- Создаем элементы GUI для категорий карт
     City = guiCreateGridList(9 * px, 24 * py, 330 * px, 327 * py, false, mainTab)
@@ -354,6 +354,9 @@ addEventHandler("onClientResourceStart", resourceRoot, function()
 
     -- Кнопка Ban/Pick
     Button = guiCreateButton(682 * px, 442 * py, 590 * px, 118 * py, "BAN/PICK", false, mainTab)
+
+    -- Дополнительное изображение под кнопкой
+    ExtraImage = guiCreateStaticImage(682 * px, 570 * py, 590 * px, 178 * py, ":/extra_image.png", false, mainTab)
 
     -- Таймеры команд
     team1NameLabel = guiCreateLabel(677 * px, 50 * py, 295 * px, 400 * py, "TEAM 1", false, mainTab)
@@ -567,8 +570,8 @@ addEventHandler("onClientResourceStart", resourceRoot, function()
     -- Обработчики кнопок управления таймерами (ИСПРАВЛЕННЫЕ)
     addEventHandler("onClientGUIClick", start1Btn, function(button, state)
         if button == "left" and state == "up" then
-            debugMessage("Start1 clicked - Timer1 active: " .. tostring(isTimer1Active))
-    --        if not isPlayerAdmin() then
+       --     debugMessage("Start1 clicked - Timer1 active: " .. tostring(isTimer1Active))
+    --     --   if not isPlayerAdmin() then
       --          outputChatBox("Only administrators can control timers!", 255, 0, 0)
         --        return
         --    end
@@ -579,7 +582,7 @@ addEventHandler("onClientResourceStart", resourceRoot, function()
 
 addEventHandler("onClientGUIClick", stop1Btn, function(button, state)
     if button == "left" and state == "up" then
-        debugMessage("Stop1 clicked - Timer1 active: " .. tostring(isTimer1Active))
+        -- debugMessage("Stop1 clicked - Timer1 active: " .. tostring(isTimer1Active))
         -- Закомментируйте проверку прав для тестирования:
         -- if not isPlayerAdmin() then
         --     outputChatBox("Only administrators can control timers!", 255, 0, 0)
@@ -603,7 +606,7 @@ end, false)
 
     addEventHandler("onClientGUIClick", stop2Btn, function(button, state)
         if button == "left" and state == "up" then
-            debugMessage("Stop2 clicked - Timer2 active: " .. tostring(isTimer2Active))
+      --      debugMessage("Stop2 clicked - Timer2 active: " .. tostring(isTimer2Active))
   --          if not isPlayerAdmin() then
     --            outputChatBox("Only administrators can control timers!", 255, 0, 0)
       --          return
@@ -710,7 +713,7 @@ end, false)
                 setSoundVolume(sound, 0)
                 isMusicPlaying = false
             end
-            outputChatBox("Captain Cup panel hidden! Music continues in background! (Press J to open)", 255, 255, 0)
+         --   outputChatBox("Captain Cup panel hidden! Music continues in background! (Press J to open)", 255, 255, 0)
         end
     end)
 
@@ -797,7 +800,7 @@ end)
 setTimer(function()
     if currentTurnData and currentTurnData.captain then
         if activeTeam == 1 and isTimer1Active and team1Time > 0 then
-            team1Time = team1Time - 1
+           team1Time = team1Time - 1
             updateTimersDisplay()
         elseif activeTeam == 2 and isTimer2Active and team2Time > 0 then
             team2Time = team2Time - 1
