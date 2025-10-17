@@ -1,4 +1,4 @@
---ccmode version 38
+--ccmode version 34
 local teams = { Team1 = "", Team2 = "" }
 local captainElements = { Captain1 = nil, Captain2 = nil }
 local captainNames = { Captain1 = "", Captain2 = "" }
@@ -460,11 +460,11 @@ addEventHandler("onBanPick", root, function(action, mapName)
     if action == "ban" then
         local teamKey = (turnData.captain == captainElements.Captain1) and "BanTeam1" or "BanTeam2"
         table.insert(banList[teamKey], mapName)
-        outputChatBox("[CC] " .. playerName .. " banned map: " .. mapName, root, 255, 165, 0)
+        outputChatBox("[CC] " .. playerName .. " banned map: " .. mapName, root, 255, 51, 51)
     elseif action == "pick" then
         local teamKey = (turnData.captain == captainElements.Captain1) and "PickTeam1" or "PickTeam2"
         table.insert(pickList[teamKey], mapName)
-        outputChatBox("[CC] " .. playerName .. " picked map: " .. mapName, root, 0, 255, 255)
+        outputChatBox("[CC] " .. playerName .. " picked map: " .. mapName, root, 0, 204, 0)
 
         -- Обновляем статистику по категориям
         local captainKey = (turnData.captain == captainElements.Captain1) and "Captain1" or "Captain2"
@@ -701,7 +701,7 @@ function nextTurn()
         triggerClientEvent(root, "onDraftPicksUpdate", resourceRoot, draftPicksHistory)
 
         outputChatBox(" ", root, 0, 255, 0)
-        outputChatBox("[CC] Captains, write /rdy when ready to start the first map", root, 0, 255, 255)
+        outputChatBox("[CC] Captains, write /rdy when ready to start the first map", root, 255, 255, 0)
         outputChatBox(" ", root, 0, 255, 0)
 
         actionQueue = {}
@@ -709,7 +709,7 @@ function nextTurn()
     else
         local turnData = actionQueue[currentTurn]
         local nextCaptainName = (turnData.captain == captainElements.Captain1) and captainNames.Captain1 or captainNames.Captain2
-        outputChatBox("[CC] Turn for " .. nextCaptainName .. " (" .. turnData.action .. ")", root, 0, 255, 255)
+        outputChatBox("[CC] Turn for " .. nextCaptainName .. " (" .. turnData.action .. ")", root, 255, 255, 0)
 
         activeTeam = (turnData.captain == captainElements.Captain1) and 1 or 2
         triggerClientEvent(root, "onUpdateTeamTimers", resourceRoot, team1Time, team2Time, activeTeam)
