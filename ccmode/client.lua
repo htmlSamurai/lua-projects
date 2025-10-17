@@ -1,4 +1,4 @@
---ccmode version 38
+--ccmode version 39
 local tabPanel, mainTab, settingsTab
 local City, Classic, Motorbike, Circuit, Offroad, Airplane
 local Team1, Team2, Captain1, Captain2, BanTeam1, BanTeam2, PickTeam1, PickTeam2
@@ -301,7 +301,7 @@ end)
 -- Создание GUI
 addEventHandler("onClientResourceStart", resourceRoot, function()
     -- Основное окно
-    tableGUI = guiCreateWindow((screenX - 1920 * px) / 2, (screenY - 1080 * py) / 2, 1920 * px, 1080 * py, "Captain's Mode | Version 5.0", false)
+    tableGUI = guiCreateWindow((screenX - 1920 * px) / 2, (screenY - 1080 * py) / 2, 1920 * px, 1080 * py, "Captain's Mode | Version 5.0 (Open / Close - Press 'J' ))", false)
     guiWindowSetSizable(tableGUI, false)
     guiSetVisible(tableGUI, isPanelVisible) -- Устанавливаем начальную видимость
 
