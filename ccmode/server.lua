@@ -1,4 +1,4 @@
---ccmode version 39
+--ccmode version 39  (На этой версии был captain's cup 2025)
 local teams = { Team1 = "", Team2 = "" }
 local captainElements = { Captain1 = nil, Captain2 = nil }
 local captainNames = { Captain1 = "", Captain2 = "" }
